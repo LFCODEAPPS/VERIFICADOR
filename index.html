@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Pagos</title>
+    <!-- Librería para escanear QR -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 { margin-bottom: 20px; }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #result-card {
+            margin-top: 25px;
+            padding: 30px 20px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .status-green {
+            background-color: #1b5e20;
+            color: #c8e6c9;
+            border: 2px solid #4caf50;
+        }
+        .status-red {
+            background-color: #b71c1c;
+            color: #ffcdd2;
+            border: 2px solid #f44336;
+        }
+        .code-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Control de Acceso</h2>
+    
+    <!-- Contenedor de la cámara -->
+    <div id="reader"></div>
+    
+    <!-- Tarjeta de resultado -->
+    <div id="result-card"></div>
+
+    <script>
+        // URL DE GOOGLE APPS SCRIPT ACTUALIZADA
+        const API_URL = "https://script.google.com/macros/s/AKfycbyUM9RAT1JuiPTSXzWWcYS1Kob64WKARy3F6ATIEPrKNPSnnGld85fbVN0s17xMAsODTQ/exec";
+
+        const resultCard = document.getElementById('result-card');
+        let isScanning = true;
+
+        function onScanSuccess(decodedText) {
+            if (!isScanning) return;
+            isScanning = false; // Pausar escaneo mientras procesa
+            
+            html5QrcodeScanner.pause(true);
+            
+            resultCard.style.display = 'block';
+            resultCard.className = '';
+            resultCard.style.backgroundColor = '#333';
+            resultCard.style.color = '#fff';
+            resultCard.style.border = 'none';
+            resultCard.innerHTML = "Consultando base de datos...";
+
+            // Consultar a Google Apps Script
+            fetch(`${API_URL}?qr=${encodeURIComponent(decodedText)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.encontrado) {
+                        if (data.estado === "SI") {
+                            resultCard.className = 'status-green';
+                            resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>AL DÍA CON SUS PAGOS`;
+                        } else {
+                            resultCard.className = 'status-red';
+                            resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>FALTA DE PAGO`;
+                        }
+                    } else {
+                        resultCard.className = 'status-red';
+                        resultCard.innerHTML = `Error: ${data.error}`;
+                    }
+                    
+                    // Reanudar escáner después de 3.5 segundos
+                    setTimeout(() => resetScanner(), 3500);
+                })
+                .catch(error => {
+                    resultCard.className = 'status-red';
+                    resultCard.innerHTML = "Error de conexión con la hoja";
+                    setTimeout(() => resetScanner(), 3500);
+                });
+        }
+
+        function resetScanner() {
+            resultCard.style.display = 'none';
+            html5QrcodeScanner.resume();
+            isScanning = true;
+        }
+
+        // Configuración de la cámara
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { fps: 10, qrbox: {width: 250, height: 250} }, 
+            false
+        );
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+</body>
+</html>

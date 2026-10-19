@@ -3,144 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Pagos</title>
+    <title>Sistema de Consultas de Pagos</title>
     <!-- Librería para escanear QR -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin: 0;
-        }
-        h2 { margin-bottom: 20px; }
-        #reader {
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            background: black;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        #result-card {
-            margin-top: 25px;
-            padding: 30px 20px;
-            border-radius: 12px;
-            font-size: 24px;
-            font-weight: bold;
-            display: none;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .status-green {
-            background-color: #1b5e20;
-            color: #c8e6c9;
-            border: 2px solid #4caf50;
-        }
-        .status-red {
-            background-color: #b71c1c;
-            color: #ffcdd2;
-            border: 2px solid #f44336;
-        }
-        .code-text {
-            font-size: 18px;
-            margin-bottom: 10px;
-            opacity: 0.9;
-            display: block;
+        /* Estilos Globales */
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; text-align: center; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        h1 { margin-top: 10px; margin-bottom: 40px; font-size: 26px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Contenedores de Vistas */
+        .view-section { display: none; width: 100%; max-width: 450px; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease; }
+
+        /* Botones del Menú Principal */
+        .menu-btn { width: 100%; background: #1e293b; color: white; border: 2px solid #334155; padding: 20px; font-size: 18px; font-weight: bold; border-radius: 12px; margin-bottom: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .menu-btn:hover { background: #334155; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        .menu-btn.primary { border-color: #38bdf8; }
+        
+        /* Vista del Escáner */
+        #reader { width: 100%; background: black; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 3px solid #1e293b; }
+        
+        /* Vista de Consulta Manual */
+        .manual-form { background: #1e293b; padding: 30px 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .manual-form input { width: 100%; padding: 15px; font-size: 20px; text-align: center; border-radius: 8px; border: 2px solid #334155; background: #0f172a; color: white; margin-bottom: 20px; outline: none; transition: border 0.3s; }
+        .manual-form input:focus { border-color: #38bdf8; }
+        .submit-btn { width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .submit-btn:hover { background: #0ea5e9; }
+
+        /* Botón de Volver */
+        .back-btn { margin-top: 25px; background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        .back-btn:hover { background: #1e293b; color: white; }
+
+        /* Tarjeta de Resultados Animada */
+        #result-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 100; pointer-events: none; }
+        #result-card { padding: 25px 20px; border-radius: 16px; font-size: 22px; font-weight: bold; display: none; box-shadow: 0 15px 30px rgba(0,0,0,0.6); pointer-events: auto; }
+        
+        .code-text { font-size: 16px; font-weight: 600; opacity: 0.8; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 2px; }
+        .status-title { font-size: 26px; margin-top: 5px; }
+
+        /* Colores de Estado */
+        .status-green { background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: 3px solid #22c55e; }
+        .status-red { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: 3px solid #ef4444; }
+        .status-loading { background: #334155; color: white; border: 3px solid #475569; }
+
+        /* Animaciones Profesionales */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn {
+            0% { transform: scale(0.8) translateY(40px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-    <h2>Control de Acceso</h2>
-    
-    <!-- Contenedor de la cámara -->
-    <div id="reader"></div>
-    
-    <!-- Tarjeta de resultado -->
-    <div id="result-card"></div>
+    <h1>SISTEMA DE CONSULTAS DE PAGOS</h1>
+
+    <!-- VISTA 1: MENÚ PRINCIPAL -->
+    <div id="view-menu" class="view-section active">
+        <button class="menu-btn primary" onclick="abrirEscaner()">
+            <span style="font-size: 24px;">📷</span> ESCANEAR QR
+        </button>
+        <button class="menu-btn" onclick="abrirManual()">
+            <span style="font-size: 24px;">⌨️</span> CONSULTAR POR CÓDIGO
+        </button>
+    </div>
+
+    <!-- VISTA 2: ESCÁNER QR -->
+    <div id="view-scanner" class="view-section">
+        <div id="reader"></div>
+        <button class="back-btn" onclick="volverMenu()">🔙 Volver al Menú</button>
+    </div>
+
+    <!-- VISTA 3: CONSULTA MANUAL -->
+    <div id="view-manual" class="view-section">
+        <div class="manual-form">
+            <form onsubmit="consultarManual(event)">
+                <input type="text" id="manual-code" placeholder="Ingrese el código (Ej: 1, 2...)" autocomplete="off" required>
+                <button type="submit" class="submit-btn">Consultar Código</button>
+            </form>
+        </div>
+        <button class="back-btn" onclick="volverMenu()">🔙 Volver al Menú</button>
+    </div>
+
+    <!-- CONTENEDOR FLOTANTE PARA RESULTADOS -->
+    <div id="result-container">
+        <div id="result-card"></div>
+    </div>
 
     <script>
+        // URL DE GOOGLE APPS SCRIPT
         const API_URL = "https://script.google.com/macros/s/AKfycbyUM9RAT1JuiPTSXzWWcYS1Kob64WKARy3F6ATIEPrKNPSnnGld85fbVN0s17xMAsODTQ/exec";
-
+        
         const resultCard = document.getElementById('result-card');
-        let isScanning = true;
         let html5QrCode;
+        let isScanning = false;
+        let escanerActivo = false;
+
+        // --- NAVEGACIÓN ENTRE VISTAS ---
+        function mostrarVista(idVista) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(idVista).classList.add('active');
+            ocultarResultado();
+        }
+
+        function volverMenu() {
+            if (escanerActivo && html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    escanerActivo = false;
+                }).catch(err => console.log(err));
+            }
+            mostrarVista('view-menu');
+        }
+
+        // --- LÓGICA DEL ESCÁNER QR ---
+        function abrirEscaner() {
+            mostrarVista('view-scanner');
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+            .then(() => { escanerActivo = true; isScanning = true; })
+            .catch(err => {
+                mostrarResultadoHTML("Error: Permisos de cámara denegados.", "status-red");
+            });
+        }
 
         function onScanSuccess(decodedText) {
             if (!isScanning) return;
             isScanning = false; 
+            html5QrCode.pause(); // Pausar escáner temporalmente
             
-            // Pausar escáner para evitar múltiples lecturas
-            html5QrCode.pause();
-            
-            resultCard.style.display = 'block';
-            resultCard.className = '';
-            resultCard.style.backgroundColor = '#333';
-            resultCard.style.color = '#fff';
-            resultCard.style.border = 'none';
-            resultCard.innerHTML = "Consultando base de datos...";
+            realizarConsultaAPI(decodedText.trim());
+        }
 
-            // Consultar a Google Apps Script (con redirect follow)
-            fetch(`${API_URL}?qr=${encodeURIComponent(decodedText)}`, {
-                method: 'GET',
-                redirect: 'follow'
-            })
-            .then(response => {
-                if (!response.ok) throw new Error("Respuesta de red incorrecta");
-                return response.json();
-            })
-            .then(data => {
-                if (data.encontrado) {
-                    if (data.estado === "SI") {
-                        resultCard.className = 'status-green';
-                        resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>AL DÍA CON SUS PAGOS`;
-                    } else {
-                        resultCard.className = 'status-red';
-                        resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>FALTA DE PAGO`;
-                    }
+        // --- LÓGICA DE CONSULTA MANUAL ---
+        function abrirManual() {
+            mostrarVista('view-manual');
+            setTimeout(() => document.getElementById('manual-code').focus(), 100);
+        }
+
+        function consultarManual(e) {
+            e.preventDefault();
+            const input = document.getElementById('manual-code');
+            const code = input.value.trim();
+            if(!code) return;
+            
+            input.blur(); // Ocultar teclado en móviles
+            realizarConsultaAPI(code);
+            input.value = ''; // Limpiar para el siguiente
+        }
+
+        // --- CONSULTA A GOOGLE APPS SCRIPT (JSONP) ---
+        function realizarConsultaAPI(codigo) {
+            mostrarResultadoHTML("⏳ Consultando...", "status-loading");
+
+            const script = document.createElement('script');
+            script.src = `${API_URL}?qr=${encodeURIComponent(codigo)}&callback=procesarRespuesta`;
+            
+            script.onerror = function() {
+                mostrarResultadoHTML("Error de conexión con la base de datos.", "status-red");
+                reiniciarFlujo();
+            };
+            
+            document.body.appendChild(script);
+            
+            // Limpieza del script inyectado
+            setTimeout(() => {
+                if (document.body.contains(script)) document.body.removeChild(script);
+            }, 4000);
+        }
+
+        // Función llamada por el servidor de Google (JSONP)
+        function procesarRespuesta(data) {
+            if (data.encontrado) {
+                if (data.estado === "SI") {
+                    mostrarResultadoHTML(`<span class="code-text">CÓDIGO: ${data.codigo}</span><div class="status-title">✅ AL DÍA</div>`, "status-green");
                 } else {
-                    resultCard.className = 'status-red';
-                    resultCard.innerHTML = `Error: ${data.error}`;
+                    mostrarResultadoHTML(`<span class="code-text">CÓDIGO: ${data.codigo}</span><div class="status-title">❌ FALTA DE PAGO</div>`, "status-red");
                 }
-                
-                setTimeout(() => resetScanner(), 3500);
-            })
-            .catch(error => {
-                console.error("Error en Fetch:", error);
-                resultCard.className = 'status-red';
-                resultCard.innerHTML = "Error de conexión con la hoja.<br><span style='font-size:14px; opacity:0.8;'>Verifica los permisos de Apps Script.</span>";
-                setTimeout(() => resetScanner(), 3500);
-            });
+            } else {
+                mostrarResultadoHTML("❌ Código no registrado", "status-red");
+            }
+            reiniciarFlujo();
         }
 
-        function resetScanner() {
+        // --- ANIMACIONES Y UI DE RESULTADOS ---
+        function mostrarResultadoHTML(contenido, claseColor) {
+            // Reiniciar animación
+            resultCard.style.animation = 'none';
+            resultCard.offsetHeight; // Forzar reflujo
+            resultCard.style.animation = null;
+
+            resultCard.className = claseColor + ' animate-pop';
+            resultCard.innerHTML = contenido;
+            resultCard.style.display = 'block';
+        }
+
+        function ocultarResultado() {
             resultCard.style.display = 'none';
-            html5QrCode.resume();
-            isScanning = true;
         }
 
-        // Iniciar la cámara inmediatamente al cargar la página
-        document.addEventListener("DOMContentLoaded", () => {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            // "environment" fuerza la cámara trasera en dispositivos móviles
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                onScanSuccess
-            ).catch(err => {
-                console.error("Error al iniciar cámara: ", err);
-                resultCard.style.display = 'block';
-                resultCard.className = 'status-red';
-                resultCard.innerHTML = "No se pudo acceder a la cámara. Por favor, otorga los permisos en tu navegador y recarga la página.";
-            });
-        });
+        function reiniciarFlujo() {
+            // Esperar 3.5 segundos antes de permitir nueva consulta
+            setTimeout(() => {
+                ocultarResultado();
+                if (escanerActivo && html5QrCode) {
+                    html5QrCode.resume();
+                    isScanning = true;
+                }
+            }, 3500);
+        }
     </script>
 </body>
 </html>

@@ -3,123 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Consultas de Pagos</title>
+    <title>Control de Pagos</title>
     <!-- Librería para escanear QR -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        /* Estilos Globales */
-        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #0f172a; color: #f8fafc; text-align: center; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        h1 { margin-top: 10px; margin-bottom: 40px; font-size: 26px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
-        
-        /* Contenedores de Vistas */
-        .view-section { display: none; width: 100%; max-width: 450px; }
-        .view-section.active { display: block; animation: fadeIn 0.4s ease; }
-
-        /* Botones del Menú Principal */
-        .menu-btn { width: 100%; background: #1e293b; color: white; border: 2px solid #334155; padding: 20px; font-size: 18px; font-weight: bold; border-radius: 12px; margin-bottom: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .menu-btn:hover { background: #334155; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        .menu-btn.primary { border-color: #38bdf8; }
-        
-        /* Vista del Escáner */
-        #reader { width: 100%; background: black; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 3px solid #1e293b; }
-        
-        /* Vista de Consulta Manual */
-        .manual-form { background: #1e293b; padding: 30px 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .manual-form input { width: 100%; padding: 15px; font-size: 20px; text-align: center; border-radius: 8px; border: 2px solid #334155; background: #0f172a; color: white; margin-bottom: 20px; outline: none; transition: border 0.3s; }
-        .manual-form input:focus { border-color: #38bdf8; }
-        .submit-btn { width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        .submit-btn:hover { background: #0ea5e9; }
-
-        /* Botón de Volver */
-        .back-btn { margin-top: 25px; background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        .back-btn:hover { background: #1e293b; color: white; }
-
-        /* Tarjeta de Resultados Animada */
-        #result-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 100; pointer-events: none; }
-        #result-card { padding: 25px 20px; border-radius: 16px; font-size: 22px; font-weight: bold; display: none; box-shadow: 0 15px 30px rgba(0,0,0,0.6); pointer-events: auto; }
-        
-        .code-text { font-size: 16px; font-weight: 600; opacity: 0.8; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 2px; }
-        .status-title { font-size: 26px; margin-top: 5px; }
-
-        /* Colores de Estado */
-        .status-green { background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: 3px solid #22c55e; }
-        .status-red { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: 3px solid #ef4444; }
-        .status-loading { background: #334155; color: white; border: 3px solid #475569; }
-
-        /* Animaciones Profesionales */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .animate-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes popIn {
-            0% { transform: scale(0.8) translateY(40px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+        /* Variables CSS para Modo Claro / Oscuro Automático */
+        :root {
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border-color: #e2e8f0;
+            --btn-blue: #007aff;
+            --btn-blue-hover: #005bb5;
+            --btn-teal: #20b2aa;
+            --btn-teal-hover: #198c86;
+            --btn-red: #dc3545;
+            --btn-red-hover: #b02a37;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #0f172a;
+                --bg-card: #1e293b;
+                --text-main: #f8fafc;
+                --text-sub: #94a3b8;
+                --border-color: #334155;
+                --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* Estilos Globales */
+        * { box-sizing: border-box; font-family: '-apple-system', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; transition: background-color 0.3s; }
+
+        /* Contenedor Principal (Tarjeta estilo App) */
+        .app-card { background-color: var(--bg-card); width: 100%; max-width: 400px; border-radius: 20px; box-shadow: var(--shadow); padding: 20px; margin-top: 10px; transition: background-color 0.3s; }
+
+        /* Cabecera (Header) */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-box { width: 40px; height: 40px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .title-box { text-align: center; flex-grow: 1; padding: 0 10px; }
+        .title-box h1 { margin: 0; font-size: 16px; font-weight: 800; color: var(--btn-blue); letter-spacing: 0.5px; }
+        .title-box h2 { margin: 2px 0 0 0; font-size: 12px; font-weight: 600; color: var(--text-sub); }
+        .settings-icon { font-size: 20px; color: var(--text-sub); cursor: pointer; }
+
+        /* Vistas */
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+
+        /* Botones Profesionales */
+        .btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 10px; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; transition: transform 0.1s, background-color 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn:active { transform: scale(0.98); }
+        .btn-blue { background-color: var(--btn-blue); }
+        .btn-teal { background-color: var(--btn-teal); }
+        .btn-red { background-color: var(--btn-red); }
+
+        /* Vista del Escáner */
+        #reader-container { border: 2px solid var(--btn-blue); border-radius: 12px; overflow: hidden; margin-bottom: 15px; background: #000; }
+        #reader { width: 100%; }
+
+        /* Vista de Consulta Manual */
+        .input-label { font-size: 14px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px; text-align: center; }
+        .manual-input { width: 100%; padding: 15px; font-size: 18px; text-align: center; border-radius: 10px; border: 2px solid var(--border-color); background-color: var(--bg-body); color: var(--text-main); margin-bottom: 20px; outline: none; transition: border 0.3s; }
+        .manual-input:focus { border-color: var(--btn-blue); }
+
+        /* Modal de Resultados Flotante */
+        #result-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .result-card { background: var(--bg-card); padding: 30px 20px; border-radius: 20px; text-align: center; width: 90%; max-width: 350px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); transform: scale(0.8); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .result-card.show { transform: scale(1); opacity: 1; }
+        
+        .result-icon { font-size: 60px; margin-bottom: 10px; }
+        .result-code { font-size: 18px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
+        .result-status { font-size: 24px; font-weight: 800; margin-bottom: 20px; }
+        
+        .status-ok { color: #16a34a; }
+        .status-fail { color: #dc2626; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <h1>SISTEMA DE CONSULTAS DE PAGOS</h1>
+    <div class="app-card">
+        <!-- Cabecera -->
+        <div class="header">
+            <div class="logo-box">🛡️</div>
+            <div class="title-box">
+                <h1>SISTEMA DE CONSULTAS</h1>
+                <h2>Control de Pagos</h2>
+            </div>
+            <div class="settings-icon">⚙️</div>
+        </div>
 
-    <!-- VISTA 1: MENÚ PRINCIPAL -->
-    <div id="view-menu" class="view-section active">
-        <button class="menu-btn primary" onclick="abrirEscaner()">
-            <span style="font-size: 24px;">📷</span> ESCANEAR QR
-        </button>
-        <button class="menu-btn" onclick="abrirManual()">
-            <span style="font-size: 24px;">⌨️</span> CONSULTAR POR CÓDIGO
-        </button>
-    </div>
+        <!-- VISTA 1: MENÚ PRINCIPAL -->
+        <div id="view-menu" class="view-section active">
+            <button class="btn btn-blue" onclick="abrirEscaner()">
+                <span>⚡</span> Iniciar escáner QR
+            </button>
+            <button class="btn btn-teal" onclick="abrirManual()">
+                <span>🔢</span> Consultar por Código
+            </button>
+        </div>
 
-    <!-- VISTA 2: ESCÁNER QR -->
-    <div id="view-scanner" class="view-section">
-        <div id="reader"></div>
-        <button class="back-btn" onclick="volverMenu()">🔙 Volver al Menú</button>
-    </div>
+        <!-- VISTA 2: ESCÁNER QR -->
+        <div id="view-scanner" class="view-section">
+            <div id="reader-container">
+                <div id="reader"></div>
+            </div>
+            <button class="btn btn-red" onclick="volverMenu()">Cerrar Cámara</button>
+        </div>
 
-    <!-- VISTA 3: CONSULTA MANUAL -->
-    <div id="view-manual" class="view-section">
-        <div class="manual-form">
+        <!-- VISTA 3: CONSULTA MANUAL -->
+        <div id="view-manual" class="view-section">
+            <label class="input-label">Ingrese el código del usuario:</label>
             <form onsubmit="consultarManual(event)">
-                <input type="text" id="manual-code" placeholder="Ingrese el código (Ej: 1, 2...)" autocomplete="off" required>
-                <button type="submit" class="submit-btn">Consultar Código</button>
+                <input type="number" id="manual-code" class="manual-input" placeholder="Ej. 1" autocomplete="off" required>
+                <button type="submit" class="btn btn-blue">Consultar Código</button>
+                <button type="button" class="btn btn-red" onclick="volverMenu()">Volver al Inicio</button>
             </form>
         </div>
-        <button class="back-btn" onclick="volverMenu()">🔙 Volver al Menú</button>
     </div>
 
-    <!-- CONTENEDOR FLOTANTE PARA RESULTADOS -->
-    <div id="result-container">
-        <div id="result-card"></div>
+    <!-- OVERLAY DE RESULTADO -->
+    <div id="result-overlay">
+        <div class="result-card" id="result-content">
+            <div id="res-icon" class="result-icon">⏳</div>
+            <div id="res-code" class="result-code">Consultando...</div>
+            <div id="res-status" class="result-status" style="color: var(--text-main);">Por favor espere</div>
+        </div>
     </div>
 
     <script>
         // URL DE GOOGLE APPS SCRIPT
         const API_URL = "https://script.google.com/macros/s/AKfycbyUM9RAT1JuiPTSXzWWcYS1Kob64WKARy3F6ATIEPrKNPSnnGld85fbVN0s17xMAsODTQ/exec";
         
-        const resultCard = document.getElementById('result-card');
         let html5QrCode;
         let isScanning = false;
         let escanerActivo = false;
 
-        // --- NAVEGACIÓN ENTRE VISTAS ---
+        // --- NAVEGACIÓN ---
         function mostrarVista(idVista) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(idVista).classList.add('active');
-            ocultarResultado();
         }
 
         function volverMenu() {
             if (escanerActivo && html5QrCode) {
                 html5QrCode.stop().then(() => {
                     escanerActivo = false;
+                    document.getElementById('reader').innerHTML = ''; // Limpiar div
                 }).catch(err => console.log(err));
             }
             mostrarVista('view-menu');
         }
 
-        // --- LÓGICA DEL ESCÁNER QR ---
+        // --- ESCÁNER QR ---
         function abrirEscaner() {
             mostrarVista('view-scanner');
             html5QrCode = new Html5Qrcode("reader");
@@ -127,20 +167,17 @@
             
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
             .then(() => { escanerActivo = true; isScanning = true; })
-            .catch(err => {
-                mostrarResultadoHTML("Error: Permisos de cámara denegados.", "status-red");
-            });
+            .catch(err => alert("Error al abrir cámara. Verifica los permisos."));
         }
 
         function onScanSuccess(decodedText) {
             if (!isScanning) return;
             isScanning = false; 
-            html5QrCode.pause(); // Pausar escáner temporalmente
-            
+            html5QrCode.pause(); 
             realizarConsultaAPI(decodedText.trim());
         }
 
-        // --- LÓGICA DE CONSULTA MANUAL ---
+        // --- CONSULTA MANUAL ---
         function abrirManual() {
             mostrarVista('view-manual');
             setTimeout(() => document.getElementById('manual-code').focus(), 100);
@@ -152,70 +189,75 @@
             const code = input.value.trim();
             if(!code) return;
             
-            input.blur(); // Ocultar teclado en móviles
+            input.blur(); 
             realizarConsultaAPI(code);
-            input.value = ''; // Limpiar para el siguiente
+            input.value = ''; 
         }
 
         // --- CONSULTA A GOOGLE APPS SCRIPT (JSONP) ---
         function realizarConsultaAPI(codigo) {
-            mostrarResultadoHTML("⏳ Consultando...", "status-loading");
+            mostrarCargando(codigo);
 
             const script = document.createElement('script');
             script.src = `${API_URL}?qr=${encodeURIComponent(codigo)}&callback=procesarRespuesta`;
             
             script.onerror = function() {
-                mostrarResultadoHTML("Error de conexión con la base de datos.", "status-red");
+                mostrarResultado("❌", "Error de conexión", "Fallo de red", "status-fail");
                 reiniciarFlujo();
             };
             
             document.body.appendChild(script);
-            
-            // Limpieza del script inyectado
-            setTimeout(() => {
-                if (document.body.contains(script)) document.body.removeChild(script);
-            }, 4000);
+            setTimeout(() => { if (document.body.contains(script)) document.body.removeChild(script); }, 4000);
         }
 
-        // Función llamada por el servidor de Google (JSONP)
         function procesarRespuesta(data) {
             if (data.encontrado) {
                 if (data.estado === "SI") {
-                    mostrarResultadoHTML(`<span class="code-text">CÓDIGO: ${data.codigo}</span><div class="status-title">✅ AL DÍA</div>`, "status-green");
+                    mostrarResultado("✅", `CÓDIGO: ${data.codigo}`, "AL DÍA", "status-ok");
                 } else {
-                    mostrarResultadoHTML(`<span class="code-text">CÓDIGO: ${data.codigo}</span><div class="status-title">❌ FALTA DE PAGO</div>`, "status-red");
+                    mostrarResultado("❌", `CÓDIGO: ${data.codigo}`, "FALTA DE PAGO", "status-fail");
                 }
             } else {
-                mostrarResultadoHTML("❌ Código no registrado", "status-red");
+                mostrarResultado("⚠️", "Código no registrado", "NO ENCONTRADO", "status-fail");
             }
             reiniciarFlujo();
         }
 
-        // --- ANIMACIONES Y UI DE RESULTADOS ---
-        function mostrarResultadoHTML(contenido, claseColor) {
-            // Reiniciar animación
-            resultCard.style.animation = 'none';
-            resultCard.offsetHeight; // Forzar reflujo
-            resultCard.style.animation = null;
+        // --- UI DE RESULTADOS ---
+        function mostrarCargando(codigo) {
+            const overlay = document.getElementById('result-overlay');
+            const card = document.getElementById('result-content');
+            
+            document.getElementById('res-icon').innerHTML = "⏳";
+            document.getElementById('res-code').innerHTML = `Buscando código ${codigo}...`;
+            document.getElementById('res-status').innerHTML = "Consultando BD";
+            document.getElementById('res-status').className = "result-status";
+            document.getElementById('res-status').style.color = "var(--text-main)";
 
-            resultCard.className = claseColor + ' animate-pop';
-            resultCard.innerHTML = contenido;
-            resultCard.style.display = 'block';
+            overlay.style.display = "flex";
+            setTimeout(() => card.classList.add('show'), 10);
         }
 
-        function ocultarResultado() {
-            resultCard.style.display = 'none';
+        function mostrarResultado(icono, codigoTexto, estadoTexto, claseColor) {
+            document.getElementById('res-icon').innerHTML = icono;
+            document.getElementById('res-code').innerHTML = codigoTexto;
+            document.getElementById('res-status').innerHTML = estadoTexto;
+            document.getElementById('res-status').className = `result-status ${claseColor}`;
         }
 
         function reiniciarFlujo() {
-            // Esperar 3.5 segundos antes de permitir nueva consulta
             setTimeout(() => {
-                ocultarResultado();
-                if (escanerActivo && html5QrCode) {
-                    html5QrCode.resume();
-                    isScanning = true;
-                }
-            }, 3500);
+                const card = document.getElementById('result-content');
+                card.classList.remove('show');
+                
+                setTimeout(() => {
+                    document.getElementById('result-overlay').style.display = "none";
+                    if (escanerActivo && html5QrCode) {
+                        html5QrCode.resume();
+                        isScanning = true;
+                    }
+                }, 300); // Tiempo de la animación de salida
+            }, 3000); // Tiempo que el resultado se queda en pantalla
         }
     </script>
 </body>

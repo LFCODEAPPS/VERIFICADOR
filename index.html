@@ -20,7 +20,7 @@
             width: 100%;
             max-width: 400px;
             margin: 0 auto;
-            background: white;
+            background: black;
             border-radius: 10px;
             overflow: hidden;
         }
@@ -65,17 +65,18 @@
     <div id="result-card"></div>
 
     <script>
-        // URL DE GOOGLE APPS SCRIPT ACTUALIZADA
         const API_URL = "https://script.google.com/macros/s/AKfycbyUM9RAT1JuiPTSXzWWcYS1Kob64WKARy3F6ATIEPrKNPSnnGld85fbVN0s17xMAsODTQ/exec";
 
         const resultCard = document.getElementById('result-card');
         let isScanning = true;
+        let html5QrCode;
 
         function onScanSuccess(decodedText) {
             if (!isScanning) return;
-            isScanning = false; // Pausar escaneo mientras procesa
+            isScanning = false; 
             
-            html5QrcodeScanner.pause(true);
+            // Pausar escáner para evitar múltiples lecturas
+            html5QrCode.pause();
             
             resultCard.style.display = 'block';
             resultCard.className = '';
@@ -84,46 +85,62 @@
             resultCard.style.border = 'none';
             resultCard.innerHTML = "Consultando base de datos...";
 
-            // Consultar a Google Apps Script
-            fetch(`${API_URL}?qr=${encodeURIComponent(decodedText)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.encontrado) {
-                        if (data.estado === "SI") {
-                            resultCard.className = 'status-green';
-                            resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>AL DÍA CON SUS PAGOS`;
-                        } else {
-                            resultCard.className = 'status-red';
-                            resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>FALTA DE PAGO`;
-                        }
+            // Consultar a Google Apps Script (con redirect follow)
+            fetch(`${API_URL}?qr=${encodeURIComponent(decodedText)}`, {
+                method: 'GET',
+                redirect: 'follow'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Respuesta de red incorrecta");
+                return response.json();
+            })
+            .then(data => {
+                if (data.encontrado) {
+                    if (data.estado === "SI") {
+                        resultCard.className = 'status-green';
+                        resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>AL DÍA CON SUS PAGOS`;
                     } else {
                         resultCard.className = 'status-red';
-                        resultCard.innerHTML = `Error: ${data.error}`;
+                        resultCard.innerHTML = `<span class="code-text">CÓDIGO: ${data.codigo}</span>FALTA DE PAGO`;
                     }
-                    
-                    // Reanudar escáner después de 3.5 segundos
-                    setTimeout(() => resetScanner(), 3500);
-                })
-                .catch(error => {
+                } else {
                     resultCard.className = 'status-red';
-                    resultCard.innerHTML = "Error de conexión con la hoja";
-                    setTimeout(() => resetScanner(), 3500);
-                });
+                    resultCard.innerHTML = `Error: ${data.error}`;
+                }
+                
+                setTimeout(() => resetScanner(), 3500);
+            })
+            .catch(error => {
+                console.error("Error en Fetch:", error);
+                resultCard.className = 'status-red';
+                resultCard.innerHTML = "Error de conexión con la hoja.<br><span style='font-size:14px; opacity:0.8;'>Verifica los permisos de Apps Script.</span>";
+                setTimeout(() => resetScanner(), 3500);
+            });
         }
 
         function resetScanner() {
             resultCard.style.display = 'none';
-            html5QrcodeScanner.resume();
+            html5QrCode.resume();
             isScanning = true;
         }
 
-        // Configuración de la cámara
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { fps: 10, qrbox: {width: 250, height: 250} }, 
-            false
-        );
-        html5QrcodeScanner.render(onScanSuccess);
+        // Iniciar la cámara inmediatamente al cargar la página
+        document.addEventListener("DOMContentLoaded", () => {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            // "environment" fuerza la cámara trasera en dispositivos móviles
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess
+            ).catch(err => {
+                console.error("Error al iniciar cámara: ", err);
+                resultCard.style.display = 'block';
+                resultCard.className = 'status-red';
+                resultCard.innerHTML = "No se pudo acceder a la cámara. Por favor, otorga los permisos en tu navegador y recarga la página.";
+            });
+        });
     </script>
 </body>
 </html>
